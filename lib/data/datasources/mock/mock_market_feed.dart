@@ -1,17 +1,19 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:decimal/decimal.dart';
+import 'package:dio/dio.dart';
 import '../../../domain/entities/price_tick.dart';
 import '../../../core/constants/stock_constants.dart';
 
-/// Real-time market data feed with live market prices & realistic micro-tick fluctuations.
+/// Real-time market data feed powered by [Dio] with custom interceptors
+/// for live network quotes and realistic micro-tick fluctuations.
 class MockMarketFeed {
-  MockMarketFeed({int? tickIntervalMs})
-      : _intervalMs = tickIntervalMs ?? StockConstants.defaultTickIntervalMs;
+  MockMarketFeed({int? tickIntervalMs, Dio? dio})
+      : _intervalMs = tickIntervalMs ?? StockConstants.defaultTickIntervalMs,
+        _dio = dio ?? _createDefaultDio();
 
   final int _intervalMs;
+  final Dio _dio;
   final _random = math.Random();
 
   /// Current LTP for each symbol (double for simulation math).
@@ -31,6 +33,39 @@ class MockMarketFeed {
   /// Stream of individual price ticks as they are emitted.
   Stream<PriceTick> get ticks => _controller.stream;
 
+  /// Creates a configured [Dio] instance with interceptors and timeouts.
+  static Dio _createDefaultDio() {
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Add interceptor for request tracking and graceful error handling
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // Log or attach authentication/headers if needed
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          return handler.next(response);
+        },
+        onError: (DioException error, handler) {
+          // Resolve gracefully without crashing the feed stream
+          return handler.next(error);
+        },
+      ),
+    );
+
+    return dio;
+  }
+
   /// Initialises prices from [StockConstants] and starts the feed.
   void start() {
     if (_started) return;
@@ -44,10 +79,10 @@ class MockMarketFeed {
       _previousPrices[symbol] = base;
     }
 
-    // Try fetching the live NSE quotes over network
+    // Fetch live market prices via Dio
     _fetchLiveOnlineQuotes();
 
-    // Refresh live network quotes every 30 seconds
+    // Refresh live quotes periodically every 30 seconds
     _apiRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (_started) _fetchLiveOnlineQuotes();
     });
@@ -88,52 +123,48 @@ class MockMarketFeed {
     return Decimal.parse(price.toStringAsFixed(2));
   }
 
-  // ─── Network Live Quote Fetcher ─────────────────────────────────────────────
+  // ─── Network Live Quote Fetcher via Dio ──────────────────────────────────────
 
   Future<void> _fetchLiveOnlineQuotes() async {
-    try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 5);
+    for (final symbol in StockConstants.allSymbols) {
+      if (!_started) break;
+      try {
+        final url =
+            'https://query1.finance.yahoo.com/v8/finance/chart/$symbol.NS?interval=1m&range=1d';
+        final response = await _dio.get<Map<String, dynamic>>(url);
 
-      for (final symbol in StockConstants.allSymbols) {
-        if (!_started) break;
-        try {
-          final uri = Uri.parse(
-              'https://query1.finance.yahoo.com/v8/finance/chart/$symbol.NS?interval=1m&range=1d');
-          final request = await client.getUrl(uri);
-          request.headers.set('User-Agent', 'Mozilla/5.0');
-          final response =
-              await request.close().timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200 && response.data != null) {
+          final data = response.data!;
+          final chart = data['chart'] as Map<String, dynamic>?;
+          final result = (chart?['result'] as List?)?.firstOrNull
+              as Map<String, dynamic>?;
+          final meta = result?['meta'] as Map<String, dynamic>?;
 
-          if (response.statusCode == 200) {
-            final body = await response.transform(utf8.decoder).join();
-            final json = jsonDecode(body);
-            final meta = json['chart']['result'][0]['meta'];
-            final price = (meta['regularMarketPrice'] as num?)?.toDouble();
-            final prevClose = (meta['chartPreviousClose'] as num?)?.toDouble();
+          final price = (meta?['regularMarketPrice'] as num?)?.toDouble();
+          final prevClose =
+              (meta?['chartPreviousClose'] as num?)?.toDouble();
 
-            if (price != null && price > 0) {
-              _currentPrices[symbol] = price;
-              if (prevClose != null && prevClose > 0) {
-                _dayOpenPrices[symbol] = prevClose;
-              }
-              _emitTick(symbol);
+          if (price != null && price > 0) {
+            _currentPrices[symbol] = price;
+            if (prevClose != null && prevClose > 0) {
+              _dayOpenPrices[symbol] = prevClose;
             }
+            _emitTick(symbol);
           }
-        } catch (_) {
-          // Ignore individual network request failures gracefully
         }
+      } catch (_) {
+        // Fallback gracefully to default/calibrated prices
       }
-    } catch (_) {
-      // Ignore network errors gracefully
     }
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────────────
 
   void _emitTick(String symbol) {
-    final prev = _currentPrices[symbol] ?? StockConstants.startingPriceFor(symbol).toDouble();
-    final dayOpen = _dayOpenPrices[symbol] ?? StockConstants.previousCloseFor(symbol).toDouble();
+    final prev = _currentPrices[symbol] ??
+        StockConstants.startingPriceFor(symbol).toDouble();
+    final dayOpen = _dayOpenPrices[symbol] ??
+        StockConstants.previousCloseFor(symbol).toDouble();
 
     final next = _nextPrice(prev, dayOpen);
     _previousPrices[symbol] = prev;
