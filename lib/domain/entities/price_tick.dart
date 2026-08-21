@@ -33,8 +33,20 @@ class PriceTick extends Equatable {
   final DateTime timestamp;
   final TickDirection direction;
 
-  bool get isGain => direction == TickDirection.up || change > Decimal.zero;
-  bool get isLoss => direction == TickDirection.down || change < Decimal.zero;
+  /// Net gain for the session (LTP > day open / prev close).
+  bool get isGain => change > Decimal.zero;
+
+  /// Net loss for the session (LTP < day open / prev close).
+  bool get isLoss => change < Decimal.zero;
+
+  /// Neutral / unchanged for the session.
+  bool get isFlat => change == Decimal.zero;
+
+  /// Micro-tick moved up from immediate previous price.
+  bool get isTickUp => direction == TickDirection.up;
+
+  /// Micro-tick moved down from immediate previous price.
+  bool get isTickDown => direction == TickDirection.down;
 
   @override
   List<Object?> get props =>
