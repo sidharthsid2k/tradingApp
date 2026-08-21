@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/price_tick.dart';
 import '../../data/datasources/mock/mock_market_feed.dart';
 import '../../core/constants/stock_constants.dart';
+import '../../core/utils/market_time.dart';
 
 /// The single global source of truth for live market prices.
 ///
@@ -26,6 +27,21 @@ class MarketViewModel extends ChangeNotifier {
   /// All current ticks in symbol order.
   List<PriceTick> get allTicks =>
       StockConstants.allSymbols.map((s) => _ticks[s]).whereType<PriceTick>().toList();
+
+  /// Whether market is currently open according to NSE market hours (09:15 - 15:30 IST).
+  bool get isMarketOpen => MarketTime.isMarketOpen;
+
+  /// Whether 24/7 simulation mode is active.
+  bool get isSimulationMode => _feed.isSimulationMode;
+
+  /// Whether prices are currently ticking.
+  bool get isTickingActive => _feed.isTickingActive;
+
+  /// Toggles 24/7 simulation mode on/off.
+  void toggleSimulationMode() {
+    _feed.setSimulationMode(!_feed.isSimulationMode);
+    notifyListeners();
+  }
 
   void _onTick(PriceTick tick) {
     _ticks[tick.symbol] = tick;
