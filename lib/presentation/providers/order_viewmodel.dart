@@ -10,12 +10,15 @@ import '../../domain/repositories/i_wallet_repository.dart';
 import '../../domain/repositories/i_holdings_repository.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/constants/app_strings.dart';
+import 'holdings_viewmodel.dart';
 
 enum OrderSideUi { buy, sell }
+enum OrderTypeUi { limit, market }
 
 /// ViewModel for the Buy/Sell order ticket.
 ///
 /// Created fresh per-page. Validates inputs against wallet and holdings,
+/// supports both Market orders and Limit orders with custom price,
 /// then delegates to use-cases for execution.
 class OrderViewModel extends ChangeNotifier {
   OrderViewModel({
@@ -41,7 +44,9 @@ class OrderViewModel extends ChangeNotifier {
   final IHoldingsRepository _holdingsRepo;
 
   OrderSideUi _side;
+  OrderTypeUi _orderType = OrderTypeUi.limit;
   String _quantityText = '';
+  String _priceText = '';
   Wallet? _wallet;
   Holding? _holding;
   PriceTick? _latestTick;
@@ -53,7 +58,9 @@ class OrderViewModel extends ChangeNotifier {
 
   String get symbol => _symbol;
   OrderSideUi get side => _side;
+  OrderTypeUi get orderType => _orderType;
   String get quantityText => _quantityText;
+  String get priceText => _priceText;
   Wallet? get wallet => _wallet;
   Holding? get holding => _holding;
   PriceTick? get latestTick => _latestTick;
@@ -63,11 +70,45 @@ class OrderViewModel extends ChangeNotifier {
 
   Decimal get ltp => _latestTick?.ltp ?? Decimal.zero;
 
-  /// Projected order value = qty × LTP.
+  /// Computed holding view if the user already purchased this stock.
+  HoldingView? get holdingView {
+    final h = _holding;
+    if (h == null || h.quantity <= 0) return null;
+    final currentLtp = ltp > Decimal.zero ? ltp : h.avgCost;
+    final ltpDouble = double.parse(currentLtp.toStringAsFixed(4));
+    final avgDouble = double.parse(h.avgCost.toStringAsFixed(4));
+    final qty = h.quantity;
+
+    final currentValueDouble = ltpDouble * qty;
+    final investedDouble = avgDouble * qty;
+    final pnlDouble = currentValueDouble - investedDouble;
+    final pnlPctDouble =
+        investedDouble == 0 ? 0.0 : (pnlDouble / investedDouble) * 100;
+
+    return HoldingView(
+      holding: h,
+      ltp: currentLtp,
+      currentValue: Decimal.parse(currentValueDouble.toStringAsFixed(2)),
+      pnl: Decimal.parse(pnlDouble.toStringAsFixed(2)),
+      pnlPercent: Decimal.parse(pnlPctDouble.toStringAsFixed(2)),
+    );
+  }
+
+  /// Effective price per share: custom limit price if limit order, or live LTP if market order.
+  Decimal get effectivePrice {
+    if (_orderType == OrderTypeUi.market) return ltp;
+    final parsed = _parsePrice();
+    return (parsed != null && parsed > Decimal.zero) ? parsed : ltp;
+  }
+
+  /// Projected order value = qty × effectivePrice.
   Decimal get projectedValue {
     final qty = _parseQty();
     if (qty == null || qty <= 0) return Decimal.zero;
-    return ltp * Decimal.fromInt(qty);
+    final price = _orderType == OrderTypeUi.market
+        ? ltp
+        : (_parsePrice() ?? Decimal.zero);
+    return price * Decimal.fromInt(qty);
   }
 
   bool get canSubmit =>
@@ -75,14 +116,31 @@ class OrderViewModel extends ChangeNotifier {
       _validationError == null &&
       _parseQty() != null &&
       _parseQty()! > 0 &&
-      ltp > Decimal.zero;
+      effectivePrice > Decimal.zero &&
+      (_orderType == OrderTypeUi.market || (_parsePrice() != null && _parsePrice()! > Decimal.zero));
 
   // ─── Setters ─────────────────────────────────────────────────────────────
 
   void setSide(OrderSideUi side) {
     _side = side;
     _validationError = null;
+    _validateSilent();
     notifyListeners();
+  }
+
+  void setOrderType(OrderTypeUi type) {
+    _orderType = type;
+    if (type == OrderTypeUi.limit && _priceText.isEmpty && ltp > Decimal.zero) {
+      _priceText = ltp.toStringAsFixed(2);
+    }
+    _validateSilent();
+    notifyListeners();
+  }
+
+  void toggleOrderType() {
+    setOrderType(
+      _orderType == OrderTypeUi.limit ? OrderTypeUi.market : OrderTypeUi.limit,
+    );
   }
 
   void setQuantity(String text) {
@@ -91,9 +149,19 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPrice(String text) {
+    _priceText = text;
+    _validateSilent();
+    notifyListeners();
+  }
+
   /// Called by the UI on every tick from [MarketViewModel].
   void updateTick(PriceTick? tick) {
     _latestTick = tick;
+    // Auto-fill initial limit price if empty and tick arrives
+    if (_orderType == OrderTypeUi.limit && _priceText.isEmpty && tick != null) {
+      _priceText = tick.ltp.toStringAsFixed(2);
+    }
     _validateSilent();
     notifyListeners();
   }
@@ -112,20 +180,20 @@ class OrderViewModel extends ChangeNotifier {
 
     try {
       final qty = _parseQty()!;
-      final currentLtp = ltp;
+      final priceToExecute = effectivePrice;
 
       Order order;
       if (_side == OrderSideUi.buy) {
         order = await _placeBuyOrder(
           symbol: _symbol,
           quantity: qty,
-          ltp: currentLtp,
+          price: priceToExecute,
         );
       } else {
         order = await _placeSellOrder(
           symbol: _symbol,
           quantity: qty,
-          ltp: currentLtp,
+          price: priceToExecute,
         );
       }
       _completedOrder = order;
@@ -157,23 +225,47 @@ class OrderViewModel extends ChangeNotifier {
     return (n != null && n > 0) ? n : null;
   }
 
-  /// Validate without surfacing error (called on every text/tick change).
-  void _validateSilent() {
-    // Only show error after user has entered something
-    if (_quantityText.isEmpty) {
-      _validationError = null;
-    } else {
-      _validationError = _validate();
+  Decimal? _parsePrice() {
+    final text = _priceText.trim();
+    if (text.isEmpty) return null;
+    final d = double.tryParse(text);
+    if (d == null || d <= 0) return null;
+    try {
+      return Decimal.parse(text);
+    } catch (_) {
+      return null;
     }
+  }
+
+  /// Validate without surfacing error on empty inputs (called on every text/tick change).
+  void _validateSilent() {
+    _validationError = _validate();
   }
 
   String? _validate() {
     final qty = _parseQty();
-    if (qty == null) return AppStrings.errInvalidQty;
-    if (qty <= 0) return AppStrings.errQtyPositive;
+    // Do not show an error banner when quantity is not yet entered; the button is already disabled
+    if (qty == null || qty <= 0) {
+      return null;
+    }
+
+    if (_orderType == OrderTypeUi.limit) {
+      final price = _parsePrice();
+      if (price == null || price <= Decimal.zero) {
+        if (_priceText.trim().isNotEmpty) {
+          return AppStrings.errInvalidPrice;
+        }
+        return null;
+      }
+    }
+
+    final price = effectivePrice;
+    if (price <= Decimal.zero) {
+      return null;
+    }
 
     if (_side == OrderSideUi.buy) {
-      final required = ltp * Decimal.fromInt(qty);
+      final required = price * Decimal.fromInt(qty);
       final balance = _wallet?.balance ?? Decimal.zero;
       if (required > balance) return AppStrings.errInsufficientBalance;
     } else {

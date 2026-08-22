@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/constants/stock_constants.dart';
 import '../../core/extensions/decimal_ext.dart';
 import '../../domain/entities/price_tick.dart';
 
 /// A row in the watchlist or live-prices list showing one stock's tick data.
-///
-/// Clean, stable row with zero background blinking or intrusive flashing.
 class StockTickerRow extends StatelessWidget {
   const StockTickerRow({
     required this.tick,
@@ -39,7 +38,7 @@ class StockTickerRow extends StatelessWidget {
                   Text(symbol, style: AppTextStyles.ticker),
                   const SizedBox(height: 2),
                   Text(
-                    symbol,
+                    StockConstants.nameFor(symbol),
                     style: AppTextStyles.bodySmall,
                     overflow: TextOverflow.ellipsis,
                   ),

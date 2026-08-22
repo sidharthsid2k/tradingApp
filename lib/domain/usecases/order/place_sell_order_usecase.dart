@@ -25,11 +25,14 @@ class PlaceSellOrderUseCase {
   Future<Order> call({
     required String symbol,
     required int quantity,
-    required Decimal ltp,
+    required Decimal price,
   }) async {
     // ── Validation ────────────────────────────────────────────────────────────
     if (quantity <= 0) {
       throw const ValidationException(AppStrings.errQtyPositive);
+    }
+    if (price <= Decimal.zero) {
+      throw const ValidationException(AppStrings.errInvalidPrice);
     }
 
     final holding = await _holdingsRepo.getBySymbol(symbol);
@@ -41,14 +44,14 @@ class PlaceSellOrderUseCase {
     }
 
     // ── Execute ───────────────────────────────────────────────────────────────
-    final totalValue = ltp * Decimal.fromInt(quantity);
+    final totalValue = price * Decimal.fromInt(quantity);
 
     final order = Order(
       id: _uuid.v4(),
       symbol: symbol,
       side: OrderSide.sell,
       quantity: quantity,
-      executedPrice: ltp,
+      executedPrice: price,
       totalValue: totalValue,
       timestamp: DateTime.now(),
     );

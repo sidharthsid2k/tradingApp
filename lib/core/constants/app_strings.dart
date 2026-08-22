@@ -54,6 +54,7 @@ class AppStrings {
   static const emptyHoldingsSubtitle =
       'Place a buy order to start building your portfolio';
   static const avgCost = 'Avg Cost';
+  static const avgPrice = 'Avg Price';
   static const qtyLabel = 'Qty';
   static const ltpLabel = 'LTP';
 
@@ -62,7 +63,13 @@ class AppStrings {
   static const buy = 'BUY';
   static const sell = 'SELL';
   static const orderQtyLabel = 'Quantity';
-  static const orderQtyHint = 'Enter quantity';
+  static const orderQtyHint = '0';
+  static const priceLimitLabel = 'Price Limit';
+  static const priceMarketLabel = 'Price Market';
+  static const market = 'Market';
+  static const limit = 'Limit';
+  static const atMarket = 'At Market';
+  static const orderType = 'Order Type';
   static const availableBalance = 'Available Balance';
   static const qtyHeld = 'Qty Held';
   static const orderValueLabel = 'Order Value';
@@ -80,10 +87,11 @@ class AppStrings {
   static const orderTime = 'Time';
 
   // ─── Validation ──────────────────────────────────────────────────────────────
-  static const errInvalidQty = 'Enter a valid quantity (whole number > 0)';
+  static const errInvalidQty = 'Enter a valid quantity';
   static const errQtyPositive = 'Quantity must be greater than 0';
-  static const errInsufficientBalance = 'Insufficient balance for this order';
-  static const errInsufficientQty = 'Not enough shares in your holdings';
+  static const errInvalidPrice = 'Price must be greater than 0';
+  static const errInsufficientBalance = 'Available amount is not enough';
+  static const errInsufficientQty = 'Not enough shares to sell';
   static const errNoHoldings = 'You don\'t hold any shares of this stock';
 
   // ─── General ─────────────────────────────────────────────────────────────────

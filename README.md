@@ -1,6 +1,6 @@
 # StockPro - Real-Time Trading App
 
-A high-performance, real-time Flutter trading application built with **Clean Architecture**, **Drift SQLite persistence**, **`package:decimal` money handling**, and responsive UI in a modern, accessible **Light Theme**.
+A high-performance, real-time Flutter trading application built with **Clean Architecture**, **Drift SQLite persistence**, **`package:decimal` money handling**, and responsive UI in a modern, accessible **Light Theme** styled after premier trading platforms like **Groww**.
 
 ---
 
@@ -18,15 +18,19 @@ A high-performance, real-time Flutter trading application built with **Clean Arc
 - **Drag-and-Drop Reordering**: Built with `ReorderableListView` backed by atomic SQLite transaction reordering.
 - **Direct Order Navigation**: Tapping any stock row opens the pre-filled Buy/Sell order ticket.
 
-### 3. 💳 Buy / Sell Order Ticket
-- Pre-filled stock ticket with live LTP updates in real time.
-- Dynamic side switcher (Buy / Sell) with real-time order value projection (`Quantity × LTP`).
-- **Strict Validations**:
-  - Available wallet balance / margin check for Buy orders.
-  - Quantity-held check for Sell orders.
-  - Zero, negative, and fractional quantity guardrails.
-- Executes at the exact LTP of submission in an atomic SQLite transaction, updating wallet balance, holdings, and order history.
-- Animated order confirmation receipt.
+### 3. 💳 Groww-Style Buy / Sell Order Ticket
+- **Market & Limit Orders**:
+  - Seamlessly toggle between **`Price Limit ↕`** and **`Price Market ↕`**.
+  - **Limit Order**: Enter any target price with decimal formatting and real-time order value calculation.
+  - **Market Order**: Instantly executes at the real-time LTP.
+- **Existing Position / Holding Card**:
+  - When viewing a stock you already own, an inline card displays **Shares owned**, **Average purchase price**, **Current holding value**, and **Live P&L** (`₹` and `%`).
+- **Dynamic Projected Value**: Calculated as `Quantity × Price` with automatic font auto-scaling (`FittedBox` / `Expanded`) to handle large numbers without overflow.
+- **Strict Validations & Contextual Warning Banners**:
+  - Available wallet balance / margin check with clean inline warnings (e.g., *"Available amount is not enough"*).
+  - Quantity-held check for Sell orders (*"Not enough shares to sell"*).
+  - Clean input handling with disabled submission until valid values are supplied.
+- **Atomic SQLite Execution**: Deducts from wallet or holdings atomically, records the order, and navigates to the animated confirmation screen.
 
 ### 4. 💼 Holdings & Portfolio Tracker
 - Real-time portfolio tracking:
@@ -46,7 +50,7 @@ The project strictly follows Clean Architecture principles:
 lib/
 ├── core/                         # Cross-cutting concerns & foundational elements
 │   ├── constants/                # AppColors, AppTextStyles, AppStrings, StockConstants
-│   ├── extensions/               # DecimalExt (INR formatting, Weighted Average Cost math)
+│   ├── extensions/               # DecimalExt (Indian INR numbering format, WAC math)
 │   ├── errors/                   # AppException hierarchy
 │   ├── router/                   # GoRouter navigation & ShellRoute configuration
 │   └── theme/                    # AppTheme (Light mode design system)
@@ -73,12 +77,12 @@ lib/
 
 ---
 
-## 💰 Precision Money & Decimal Handling
+## 💰 Precision Money & Indian Currency Numbering
 
 To prevent binary floating-point drift (e.g. `0.1 + 0.2 != 0.3`):
 - All financial balances, prices, quantities, and order values use **`Decimal`** from `package:decimal`.
 - Stored as precise strings in SQLite tables.
-- Formatted consistently in Indian Rupees (`₹ 1,234.56` or `+₹ 45.20 (+1.25%)`) via [`DecimalExt`](lib/core/extensions/decimal_ext.dart).
+- Formatted in standard **Indian Numbering System** (`₹89,20,53,67,089.00` and `₹6,09,560.00`) via [`DecimalExt`](lib/core/extensions/decimal_ext.dart).
 - Weighted average price uses exact rational arithmetic:
   $$\text{New Avg Cost} = \frac{(\text{Prev Qty} \times \text{Prev Avg}) + (\text{New Qty} \times \text{Execution Price})}{\text{Prev Qty} + \text{New Qty}}$$
 
@@ -106,7 +110,7 @@ flutter run
 ### Static Analysis
 
 ```bash
-dart analyze lib/
+dart analyze
 ```
 
 ---

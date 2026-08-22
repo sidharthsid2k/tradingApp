@@ -24,18 +24,21 @@ class PlaceBuyOrderUseCase {
 
   static const _uuid = Uuid();
 
-  /// Places a buy order at [ltp] — the LTP captured by the ViewModel at submit.
+  /// Places a buy order at [price] (LTP for market order or custom limit price).
   Future<Order> call({
     required String symbol,
     required int quantity,
-    required Decimal ltp,
+    required Decimal price,
   }) async {
     // ── Validation ────────────────────────────────────────────────────────────
     if (quantity <= 0) {
       throw const ValidationException(AppStrings.errQtyPositive);
     }
+    if (price <= Decimal.zero) {
+      throw const ValidationException(AppStrings.errInvalidPrice);
+    }
 
-    final totalValue = ltp * Decimal.fromInt(quantity);
+    final totalValue = price * Decimal.fromInt(quantity);
     final wallet = await _walletRepo.get();
 
     if (totalValue > wallet.balance) {
@@ -48,7 +51,7 @@ class PlaceBuyOrderUseCase {
       symbol: symbol,
       side: OrderSide.buy,
       quantity: quantity,
-      executedPrice: ltp,
+      executedPrice: price,
       totalValue: totalValue,
       timestamp: DateTime.now(),
     );
@@ -66,7 +69,7 @@ class PlaceBuyOrderUseCase {
       final newAvgCost = weightedAverageCost(
         oldAvgCost: existing.avgCost,
         oldQty: existing.quantity,
-        newPrice: ltp,
+        newPrice: price,
         newQty: quantity,
       );
       updatedHolding = existing.copyWith(
@@ -74,7 +77,7 @@ class PlaceBuyOrderUseCase {
         avgCost: newAvgCost,
       );
     } else {
-      updatedHolding = Holding(symbol: symbol, quantity: quantity, avgCost: ltp);
+      updatedHolding = Holding(symbol: symbol, quantity: quantity, avgCost: price);
     }
 
     // Persist all changes

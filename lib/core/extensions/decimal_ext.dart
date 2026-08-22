@@ -66,23 +66,32 @@ Decimal weightedAverageCost({
   return Decimal.parse(avgCost.toStringAsFixed(4));
 }
 
-/// Formats "12345.67" → "12,345.67" (standard comma separation).
+/// Formats "12345.67" → "12,345.67" and "89205367089" → "89,20,53,67,089" (Indian numbering system).
 String _formatWithCommas(String numStr) {
   final parts = numStr.split('.');
   final intPart = parts[0];
   final decPart = parts.length > 1 ? '.${parts[1]}' : '';
 
-  final buf = StringBuffer();
   final digits = intPart.replaceAll('-', '');
   final neg = intPart.startsWith('-');
+
+  if (digits.length <= 3) {
+    return '${neg ? '-' : ''}$digits$decPart';
+  }
+
+  final lastThree = digits.substring(digits.length - 3);
+  final remaining = digits.substring(0, digits.length - 3);
+
+  final buf = StringBuffer();
   var count = 0;
-  for (var i = digits.length - 1; i >= 0; i--) {
-    if (count > 0 && count % 3 == 0) buf.write(',');
-    buf.write(digits[i]);
+  for (var i = remaining.length - 1; i >= 0; i--) {
+    if (count > 0 && count % 2 == 0) buf.write(',');
+    buf.write(remaining[i]);
     count++;
   }
-  final reversed = buf.toString().split('').reversed.join();
-  return '${neg ? '-' : ''}$reversed$decPart';
+  final remainingWithCommas = buf.toString().split('').reversed.join();
+
+  return '${neg ? '-' : ''}$remainingWithCommas,$lastThree$decPart';
 }
 
 String _compactFormat(double value) {

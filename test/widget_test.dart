@@ -1,30 +1,22 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:tradingapp/main.dart';
+import 'package:decimal/decimal.dart';
+import 'package:tradingapp/core/extensions/decimal_ext.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('DecimalFormatting - Indian Currency formatting', () {
+    test('formats numbers according to Indian numbering system like Groww', () {
+      expect(Decimal.parse('1121.00').toINR(), '₹1,121.00');
+      expect(Decimal.parse('12345.67').toINR(), '₹12,345.67');
+      expect(Decimal.parse('609560.00').toINR(), '₹6,09,560.00');
+      expect(Decimal.parse('89205367089').toINR(), '₹89,20,53,67,089.00');
+      expect(Decimal.parse('2625745699955434730').toINR(),
+          '₹26,25,74,56,99,95,54,34,730.00');
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('formats negative amounts and zero properly', () {
+      expect(Decimal.parse('-1.00').toSignedINR(), '-₹1.00');
+      expect(Decimal.parse('0').toINR(), '₹0.00');
+      expect(Decimal.parse('500').toINR(), '₹500.00');
+    });
   });
 }

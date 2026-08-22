@@ -161,10 +161,22 @@ class _ConfirmRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: AppTextStyles.bodyMedium),
-        Text(
-          value,
-          style: (valueStyle ?? AppTextStyles.bodyLarge)
-              .copyWith(color: valueColor),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                style: (valueStyle ?? AppTextStyles.bodyLarge)
+                    .copyWith(color: valueColor),
+                textAlign: TextAlign.end,
+                maxLines: 1,
+              ),
+            ),
+          ),
         ),
       ],
     );
