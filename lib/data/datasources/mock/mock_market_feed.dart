@@ -88,24 +88,37 @@ class MockMarketFeed {
     // Fetch official live/closing market prices via Dio
     _fetchLiveOnlineQuotes();
 
-    // Refresh live quotes every 30 seconds
-    _apiRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_started) _fetchLiveOnlineQuotes();
+    // Refresh live quotes and check market status every 15 seconds
+    _apiRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!_started) return;
+      _checkMarketStatusTransition();
+      _fetchLiveOnlineQuotes();
     });
 
     _restartTickTimer();
   }
 
+  bool _lastTickingActive = false;
+
+  void _checkMarketStatusTransition() {
+    final currentActive = isTickingActive;
+    if (_lastTickingActive != currentActive) {
+      _lastTickingActive = currentActive;
+      _restartTickTimer();
+    }
+  }
+
   void _restartTickTimer() {
+    _lastTickingActive = isTickingActive;
     _timer?.cancel();
     _timer = null;
 
-    // Emit initial snapshot of all stocks
+    // Emit snapshot of all stocks
     for (final symbol in StockConstants.allSymbols) {
       _emitTick(symbol, isStatic: !isTickingActive);
     }
 
-    // Only start periodic micro-ticks if market is open or simulation mode is on
+    // Start periodic micro-ticks if market is open (Mon-Fri 9:15 AM - 3:30 PM IST) or simulation is ON
     if (isTickingActive) {
       _timer = Timer.periodic(Duration(milliseconds: _intervalMs), (_) {
         if (!_started || !isTickingActive) return;
