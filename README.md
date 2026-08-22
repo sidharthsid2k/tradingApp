@@ -1,6 +1,6 @@
 # StockPro - Real-Time Trading App
 
-A high-performance, real-time Flutter trading application built with **Clean Architecture**, **Drift SQLite persistence**, **`package:decimal` money handling**, and responsive UI in a modern, accessible **Light Theme** styled after premier trading platforms like **Groww**.
+A high-performance, real-time Flutter trading application built with **Clean Architecture**, **Drift SQLite persistence**, **`package:decimal` money handling**, and responsive UI in a modern, accessible **Light Theme**.
 
 ---
 
@@ -18,7 +18,7 @@ A high-performance, real-time Flutter trading application built with **Clean Arc
 - **Drag-and-Drop Reordering**: Built with `ReorderableListView` backed by atomic SQLite transaction reordering.
 - **Direct Order Navigation**: Tapping any stock row opens the pre-filled Buy/Sell order ticket.
 
-### 3. 💳 Groww-Style Buy / Sell Order Ticket
+### 3. 💳 Buy / Sell Order Ticket
 - **Market & Limit Orders**:
   - Seamlessly toggle between **`Price Limit ↕`** and **`Price Market ↕`**.
   - **Limit Order**: Enter any target price with decimal formatting and real-time order value calculation.
