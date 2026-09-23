@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/pages/shell/main_shell_page.dart';
 import '../../presentation/pages/market/live_prices_page.dart';
 import '../../presentation/pages/watchlist/watchlist_page.dart';
+import '../../presentation/pages/orders/orders_page.dart';
 import '../../presentation/pages/holdings/holdings_page.dart';
 import '../../presentation/pages/order/order_ticket_page.dart';
 import '../../presentation/pages/order/order_confirmation_page.dart';
@@ -12,6 +13,7 @@ class AppRoutes {
   AppRoutes._();
   static const market = '/market';
   static const watchlists = '/watchlists';
+  static const orders = '/orders';
   static const holdings = '/holdings';
   static const order = '/order';
   static const orderConfirmation = '/order-confirmation';
@@ -32,6 +34,11 @@ final appRouter = GoRouter(
           path: AppRoutes.watchlists,
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: WatchlistPage()),
+        ),
+        GoRoute(
+          path: AppRoutes.orders,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: OrdersPage()),
         ),
         GoRoute(
           path: AppRoutes.holdings,

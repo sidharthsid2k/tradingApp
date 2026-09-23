@@ -9,6 +9,7 @@ class AppStrings {
   // ─── Bottom Nav ─────────────────────────────────────────────────────────────
   static const navMarket = 'Market';
   static const navWatchlists = 'Watchlists';
+  static const navOrders = 'Orders';
   static const navHoldings = 'Holdings';
 
   // ─── Live Prices ─────────────────────────────────────────────────────────────
@@ -75,6 +76,30 @@ class AppStrings {
   static const orderValueLabel = 'Order Value';
   static const placeOrder = 'Place Order';
   static const submitting = 'Processing…';
+
+  // ─── Orders ──────────────────────────────────────────────────────────────────
+  static const ordersTitle = 'Orders';
+  static const tabOpenOrders = 'Open';
+  static const tabExecutedOrders = 'Executed';
+  static const emptyOpenOrdersTitle = 'No Open Orders';
+  static const emptyOpenOrdersSubtitle =
+      'Your pending limit orders will appear here until triggered';
+  static const emptyExecutedOrdersTitle = 'No Executed Orders';
+  static const emptyExecutedOrdersSubtitle =
+      'Completed buy and sell orders will appear here';
+  static const viewOrders = 'View Orders';
+  static const orderPending = 'Order Submitted!';
+  static const orderPendingSubtitle =
+      'Will execute automatically when price reaches';
+  static const statusPending = 'OPEN';
+  static const statusExecuted = 'EXECUTED';
+  static const statusCancelled = 'CANCELLED';
+  static const cancelOrder = 'Cancel Order';
+  static const cancelOrderConfirm =
+      'Are you sure you want to cancel this pending order?';
+  static const orderCancelled = 'Order Cancelled';
+  static const limitPrice = 'Limit Price';
+  static const triggerAt = 'Trigger';
 
   // ─── Order Confirmation ──────────────────────────────────────────────────────
   static const orderSuccess = 'Order Placed!';

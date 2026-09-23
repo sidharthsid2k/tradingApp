@@ -10,10 +10,12 @@ import 'data/repositories/watchlist_repository_impl.dart';
 import 'data/repositories/holdings_repository_impl.dart';
 import 'data/repositories/order_repository_impl.dart';
 import 'data/repositories/wallet_repository_impl.dart';
+import 'data/repositories/transaction_runner_impl.dart';
 import 'domain/repositories/i_watchlist_repository.dart';
 import 'domain/repositories/i_holdings_repository.dart';
 import 'domain/repositories/i_order_repository.dart';
 import 'domain/repositories/i_wallet_repository.dart';
+import 'domain/repositories/i_transaction_runner.dart';
 import 'domain/usecases/watchlist/get_watchlists_usecase.dart';
 import 'domain/usecases/watchlist/create_watchlist_usecase.dart';
 import 'domain/usecases/watchlist/rename_watchlist_usecase.dart';
@@ -22,9 +24,13 @@ import 'domain/usecases/watchlist/add_stock_to_watchlist_usecase.dart';
 import 'domain/usecases/watchlist/remove_stock_from_watchlist_usecase.dart';
 import 'domain/usecases/watchlist/reorder_stock_usecase.dart';
 import 'domain/usecases/holdings/get_holdings_usecase.dart';
+import 'domain/usecases/holdings/delete_holding_usecase.dart';
+import 'domain/usecases/order/execute_order_usecase.dart';
+import 'domain/usecases/order/cancel_order_usecase.dart';
 import 'presentation/providers/market_viewmodel.dart';
 import 'presentation/providers/watchlist_viewmodel.dart';
 import 'presentation/providers/holdings_viewmodel.dart';
+import 'presentation/providers/orders_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +55,16 @@ void main() async {
   final holdingsRepo = HoldingsRepositoryImpl(db);
   final orderRepo = OrderRepositoryImpl(db);
   final walletRepo = WalletRepositoryImpl(db);
+  final transactionRunner = TransactionRunnerImpl(db);
+
+  // ── Order Engine Use Cases ───────────────────────────────────────────────────
+  final executeOrderUseCase = ExecuteOrderUseCase(
+    walletRepo: walletRepo,
+    holdingsRepo: holdingsRepo,
+    orderRepo: orderRepo,
+    transactionRunner: transactionRunner,
+  );
+  final cancelOrderUseCase = CancelOrderUseCase(orderRepo);
 
   runApp(
     MultiProvider(
@@ -62,6 +78,7 @@ void main() async {
         Provider<IHoldingsRepository>.value(value: holdingsRepo),
         Provider<IOrderRepository>.value(value: orderRepo),
         Provider<IWalletRepository>.value(value: walletRepo),
+        Provider<ITransactionRunner>.value(value: transactionRunner),
 
         // ── ViewModels ──────────────────────────────────────────────────────────
         ChangeNotifierProvider<MarketViewModel>(
@@ -81,7 +98,24 @@ void main() async {
         ),
 
         ChangeNotifierProvider<HoldingsViewModel>(
-          create: (_) => HoldingsViewModel(GetHoldingsUseCase(holdingsRepo)),
+          create: (_) => HoldingsViewModel(
+            GetHoldingsUseCase(holdingsRepo),
+            deleteHolding: DeleteHoldingUseCase(
+              holdingsRepo: holdingsRepo,
+              walletRepo: walletRepo,
+              transactionRunner: transactionRunner,
+            ),
+          ),
+        ),
+
+        ChangeNotifierProvider<OrdersViewModel>(
+          create: (ctx) => OrdersViewModel(
+            orderRepo: orderRepo,
+            executeOrderUseCase: executeOrderUseCase,
+            cancelOrderUseCase: cancelOrderUseCase,
+            feed: feed,
+            holdingsViewModel: ctx.read<HoldingsViewModel>(),
+          ),
         ),
       ],
       child: const TradingApp(),

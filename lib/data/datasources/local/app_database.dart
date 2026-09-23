@@ -24,7 +24,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(orders, orders.orderType);
+            await m.addColumn(orders, orders.status);
+            await m.addColumn(orders, orders.limitPriceStr);
+            await m.addColumn(orders, orders.triggerDirection);
+          }
+        },
+      );
 }
 
 LazyDatabase _openConnection() {

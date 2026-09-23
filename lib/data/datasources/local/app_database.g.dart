@@ -728,24 +728,51 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderEntry> {
   late final GeneratedColumn<String> side = GeneratedColumn<String>(
       'side', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _orderTypeMeta =
+      const VerificationMeta('orderType');
+  @override
+  late final GeneratedColumn<String> orderType = GeneratedColumn<String>(
+      'order_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('market'));
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('executed'));
   static const VerificationMeta _quantityMeta =
       const VerificationMeta('quantity');
   @override
   late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
       'quantity', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _limitPriceStrMeta =
+      const VerificationMeta('limitPriceStr');
+  @override
+  late final GeneratedColumn<String> limitPriceStr = GeneratedColumn<String>(
+      'limit_price_str', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _executedPriceStrMeta =
       const VerificationMeta('executedPriceStr');
   @override
   late final GeneratedColumn<String> executedPriceStr = GeneratedColumn<String>(
-      'executed_price_str', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+      'executed_price_str', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _totalValueStrMeta =
       const VerificationMeta('totalValueStr');
   @override
   late final GeneratedColumn<String> totalValueStr = GeneratedColumn<String>(
       'total_value_str', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _triggerDirectionMeta =
+      const VerificationMeta('triggerDirection');
+  @override
+  late final GeneratedColumn<String> triggerDirection = GeneratedColumn<String>(
+      'trigger_direction', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _timestampMsMeta =
       const VerificationMeta('timestampMs');
   @override
@@ -757,9 +784,13 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderEntry> {
         id,
         symbol,
         side,
+        orderType,
+        status,
         quantity,
+        limitPriceStr,
         executedPriceStr,
         totalValueStr,
+        triggerDirection,
         timestampMs
       ];
   @override
@@ -789,19 +820,31 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderEntry> {
     } else if (isInserting) {
       context.missing(_sideMeta);
     }
+    if (data.containsKey('order_type')) {
+      context.handle(_orderTypeMeta,
+          orderType.isAcceptableOrUnknown(data['order_type']!, _orderTypeMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
     if (data.containsKey('quantity')) {
       context.handle(_quantityMeta,
           quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
     } else if (isInserting) {
       context.missing(_quantityMeta);
     }
+    if (data.containsKey('limit_price_str')) {
+      context.handle(
+          _limitPriceStrMeta,
+          limitPriceStr.isAcceptableOrUnknown(
+              data['limit_price_str']!, _limitPriceStrMeta));
+    }
     if (data.containsKey('executed_price_str')) {
       context.handle(
           _executedPriceStrMeta,
           executedPriceStr.isAcceptableOrUnknown(
               data['executed_price_str']!, _executedPriceStrMeta));
-    } else if (isInserting) {
-      context.missing(_executedPriceStrMeta);
     }
     if (data.containsKey('total_value_str')) {
       context.handle(
@@ -810,6 +853,12 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderEntry> {
               data['total_value_str']!, _totalValueStrMeta));
     } else if (isInserting) {
       context.missing(_totalValueStrMeta);
+    }
+    if (data.containsKey('trigger_direction')) {
+      context.handle(
+          _triggerDirectionMeta,
+          triggerDirection.isAcceptableOrUnknown(
+              data['trigger_direction']!, _triggerDirectionMeta));
     }
     if (data.containsKey('timestamp_ms')) {
       context.handle(
@@ -834,12 +883,20 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderEntry> {
           .read(DriftSqlType.string, data['${effectivePrefix}symbol'])!,
       side: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}side'])!,
+      orderType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}order_type'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
       quantity: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
+      limitPriceStr: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}limit_price_str']),
       executedPriceStr: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}executed_price_str'])!,
+          DriftSqlType.string, data['${effectivePrefix}executed_price_str']),
       totalValueStr: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}total_value_str'])!,
+      triggerDirection: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}trigger_direction']),
       timestampMs: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}timestamp_ms'])!,
     );
@@ -857,9 +914,23 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
 
   /// 'buy' or 'sell'
   final String side;
+
+  /// 'market' or 'limit'
+  final String orderType;
+
+  /// 'pending', 'executed', or 'cancelled'
+  final String status;
   final int quantity;
-  final String executedPriceStr;
+
+  /// Target limit price as string (null for market orders).
+  final String? limitPriceStr;
+
+  /// Actual execution price as string (null while pending).
+  final String? executedPriceStr;
   final String totalValueStr;
+
+  /// 'gte' or 'lte'
+  final String? triggerDirection;
 
   /// Epoch milliseconds.
   final int timestampMs;
@@ -867,9 +938,13 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
       {required this.id,
       required this.symbol,
       required this.side,
+      required this.orderType,
+      required this.status,
       required this.quantity,
-      required this.executedPriceStr,
+      this.limitPriceStr,
+      this.executedPriceStr,
       required this.totalValueStr,
+      this.triggerDirection,
       required this.timestampMs});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -877,9 +952,19 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
     map['id'] = Variable<String>(id);
     map['symbol'] = Variable<String>(symbol);
     map['side'] = Variable<String>(side);
+    map['order_type'] = Variable<String>(orderType);
+    map['status'] = Variable<String>(status);
     map['quantity'] = Variable<int>(quantity);
-    map['executed_price_str'] = Variable<String>(executedPriceStr);
+    if (!nullToAbsent || limitPriceStr != null) {
+      map['limit_price_str'] = Variable<String>(limitPriceStr);
+    }
+    if (!nullToAbsent || executedPriceStr != null) {
+      map['executed_price_str'] = Variable<String>(executedPriceStr);
+    }
     map['total_value_str'] = Variable<String>(totalValueStr);
+    if (!nullToAbsent || triggerDirection != null) {
+      map['trigger_direction'] = Variable<String>(triggerDirection);
+    }
     map['timestamp_ms'] = Variable<int>(timestampMs);
     return map;
   }
@@ -889,9 +974,19 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
       id: Value(id),
       symbol: Value(symbol),
       side: Value(side),
+      orderType: Value(orderType),
+      status: Value(status),
       quantity: Value(quantity),
-      executedPriceStr: Value(executedPriceStr),
+      limitPriceStr: limitPriceStr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(limitPriceStr),
+      executedPriceStr: executedPriceStr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executedPriceStr),
       totalValueStr: Value(totalValueStr),
+      triggerDirection: triggerDirection == null && nullToAbsent
+          ? const Value.absent()
+          : Value(triggerDirection),
       timestampMs: Value(timestampMs),
     );
   }
@@ -903,9 +998,13 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
       id: serializer.fromJson<String>(json['id']),
       symbol: serializer.fromJson<String>(json['symbol']),
       side: serializer.fromJson<String>(json['side']),
+      orderType: serializer.fromJson<String>(json['orderType']),
+      status: serializer.fromJson<String>(json['status']),
       quantity: serializer.fromJson<int>(json['quantity']),
-      executedPriceStr: serializer.fromJson<String>(json['executedPriceStr']),
+      limitPriceStr: serializer.fromJson<String?>(json['limitPriceStr']),
+      executedPriceStr: serializer.fromJson<String?>(json['executedPriceStr']),
       totalValueStr: serializer.fromJson<String>(json['totalValueStr']),
+      triggerDirection: serializer.fromJson<String?>(json['triggerDirection']),
       timestampMs: serializer.fromJson<int>(json['timestampMs']),
     );
   }
@@ -916,9 +1015,13 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
       'id': serializer.toJson<String>(id),
       'symbol': serializer.toJson<String>(symbol),
       'side': serializer.toJson<String>(side),
+      'orderType': serializer.toJson<String>(orderType),
+      'status': serializer.toJson<String>(status),
       'quantity': serializer.toJson<int>(quantity),
-      'executedPriceStr': serializer.toJson<String>(executedPriceStr),
+      'limitPriceStr': serializer.toJson<String?>(limitPriceStr),
+      'executedPriceStr': serializer.toJson<String?>(executedPriceStr),
       'totalValueStr': serializer.toJson<String>(totalValueStr),
+      'triggerDirection': serializer.toJson<String?>(triggerDirection),
       'timestampMs': serializer.toJson<int>(timestampMs),
     };
   }
@@ -927,17 +1030,30 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
           {String? id,
           String? symbol,
           String? side,
+          String? orderType,
+          String? status,
           int? quantity,
-          String? executedPriceStr,
+          Value<String?> limitPriceStr = const Value.absent(),
+          Value<String?> executedPriceStr = const Value.absent(),
           String? totalValueStr,
+          Value<String?> triggerDirection = const Value.absent(),
           int? timestampMs}) =>
       OrderEntry(
         id: id ?? this.id,
         symbol: symbol ?? this.symbol,
         side: side ?? this.side,
+        orderType: orderType ?? this.orderType,
+        status: status ?? this.status,
         quantity: quantity ?? this.quantity,
-        executedPriceStr: executedPriceStr ?? this.executedPriceStr,
+        limitPriceStr:
+            limitPriceStr.present ? limitPriceStr.value : this.limitPriceStr,
+        executedPriceStr: executedPriceStr.present
+            ? executedPriceStr.value
+            : this.executedPriceStr,
         totalValueStr: totalValueStr ?? this.totalValueStr,
+        triggerDirection: triggerDirection.present
+            ? triggerDirection.value
+            : this.triggerDirection,
         timestampMs: timestampMs ?? this.timestampMs,
       );
   OrderEntry copyWithCompanion(OrdersCompanion data) {
@@ -945,13 +1061,21 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
       id: data.id.present ? data.id.value : this.id,
       symbol: data.symbol.present ? data.symbol.value : this.symbol,
       side: data.side.present ? data.side.value : this.side,
+      orderType: data.orderType.present ? data.orderType.value : this.orderType,
+      status: data.status.present ? data.status.value : this.status,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      limitPriceStr: data.limitPriceStr.present
+          ? data.limitPriceStr.value
+          : this.limitPriceStr,
       executedPriceStr: data.executedPriceStr.present
           ? data.executedPriceStr.value
           : this.executedPriceStr,
       totalValueStr: data.totalValueStr.present
           ? data.totalValueStr.value
           : this.totalValueStr,
+      triggerDirection: data.triggerDirection.present
+          ? data.triggerDirection.value
+          : this.triggerDirection,
       timestampMs:
           data.timestampMs.present ? data.timestampMs.value : this.timestampMs,
     );
@@ -963,9 +1087,13 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
           ..write('id: $id, ')
           ..write('symbol: $symbol, ')
           ..write('side: $side, ')
+          ..write('orderType: $orderType, ')
+          ..write('status: $status, ')
           ..write('quantity: $quantity, ')
+          ..write('limitPriceStr: $limitPriceStr, ')
           ..write('executedPriceStr: $executedPriceStr, ')
           ..write('totalValueStr: $totalValueStr, ')
+          ..write('triggerDirection: $triggerDirection, ')
           ..write('timestampMs: $timestampMs')
           ..write(')'))
         .toString();
@@ -973,7 +1101,17 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
 
   @override
   int get hashCode => Object.hash(
-      id, symbol, side, quantity, executedPriceStr, totalValueStr, timestampMs);
+      id,
+      symbol,
+      side,
+      orderType,
+      status,
+      quantity,
+      limitPriceStr,
+      executedPriceStr,
+      totalValueStr,
+      triggerDirection,
+      timestampMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -981,9 +1119,13 @@ class OrderEntry extends DataClass implements Insertable<OrderEntry> {
           other.id == this.id &&
           other.symbol == this.symbol &&
           other.side == this.side &&
+          other.orderType == this.orderType &&
+          other.status == this.status &&
           other.quantity == this.quantity &&
+          other.limitPriceStr == this.limitPriceStr &&
           other.executedPriceStr == this.executedPriceStr &&
           other.totalValueStr == this.totalValueStr &&
+          other.triggerDirection == this.triggerDirection &&
           other.timestampMs == this.timestampMs);
 }
 
@@ -991,18 +1133,26 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
   final Value<String> id;
   final Value<String> symbol;
   final Value<String> side;
+  final Value<String> orderType;
+  final Value<String> status;
   final Value<int> quantity;
-  final Value<String> executedPriceStr;
+  final Value<String?> limitPriceStr;
+  final Value<String?> executedPriceStr;
   final Value<String> totalValueStr;
+  final Value<String?> triggerDirection;
   final Value<int> timestampMs;
   final Value<int> rowid;
   const OrdersCompanion({
     this.id = const Value.absent(),
     this.symbol = const Value.absent(),
     this.side = const Value.absent(),
+    this.orderType = const Value.absent(),
+    this.status = const Value.absent(),
     this.quantity = const Value.absent(),
+    this.limitPriceStr = const Value.absent(),
     this.executedPriceStr = const Value.absent(),
     this.totalValueStr = const Value.absent(),
+    this.triggerDirection = const Value.absent(),
     this.timestampMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1010,25 +1160,32 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
     required String id,
     required String symbol,
     required String side,
+    this.orderType = const Value.absent(),
+    this.status = const Value.absent(),
     required int quantity,
-    required String executedPriceStr,
+    this.limitPriceStr = const Value.absent(),
+    this.executedPriceStr = const Value.absent(),
     required String totalValueStr,
+    this.triggerDirection = const Value.absent(),
     required int timestampMs,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         symbol = Value(symbol),
         side = Value(side),
         quantity = Value(quantity),
-        executedPriceStr = Value(executedPriceStr),
         totalValueStr = Value(totalValueStr),
         timestampMs = Value(timestampMs);
   static Insertable<OrderEntry> custom({
     Expression<String>? id,
     Expression<String>? symbol,
     Expression<String>? side,
+    Expression<String>? orderType,
+    Expression<String>? status,
     Expression<int>? quantity,
+    Expression<String>? limitPriceStr,
     Expression<String>? executedPriceStr,
     Expression<String>? totalValueStr,
+    Expression<String>? triggerDirection,
     Expression<int>? timestampMs,
     Expression<int>? rowid,
   }) {
@@ -1036,9 +1193,13 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
       if (id != null) 'id': id,
       if (symbol != null) 'symbol': symbol,
       if (side != null) 'side': side,
+      if (orderType != null) 'order_type': orderType,
+      if (status != null) 'status': status,
       if (quantity != null) 'quantity': quantity,
+      if (limitPriceStr != null) 'limit_price_str': limitPriceStr,
       if (executedPriceStr != null) 'executed_price_str': executedPriceStr,
       if (totalValueStr != null) 'total_value_str': totalValueStr,
+      if (triggerDirection != null) 'trigger_direction': triggerDirection,
       if (timestampMs != null) 'timestamp_ms': timestampMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1048,18 +1209,26 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
       {Value<String>? id,
       Value<String>? symbol,
       Value<String>? side,
+      Value<String>? orderType,
+      Value<String>? status,
       Value<int>? quantity,
-      Value<String>? executedPriceStr,
+      Value<String?>? limitPriceStr,
+      Value<String?>? executedPriceStr,
       Value<String>? totalValueStr,
+      Value<String?>? triggerDirection,
       Value<int>? timestampMs,
       Value<int>? rowid}) {
     return OrdersCompanion(
       id: id ?? this.id,
       symbol: symbol ?? this.symbol,
       side: side ?? this.side,
+      orderType: orderType ?? this.orderType,
+      status: status ?? this.status,
       quantity: quantity ?? this.quantity,
+      limitPriceStr: limitPriceStr ?? this.limitPriceStr,
       executedPriceStr: executedPriceStr ?? this.executedPriceStr,
       totalValueStr: totalValueStr ?? this.totalValueStr,
+      triggerDirection: triggerDirection ?? this.triggerDirection,
       timestampMs: timestampMs ?? this.timestampMs,
       rowid: rowid ?? this.rowid,
     );
@@ -1077,14 +1246,26 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
     if (side.present) {
       map['side'] = Variable<String>(side.value);
     }
+    if (orderType.present) {
+      map['order_type'] = Variable<String>(orderType.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
     if (quantity.present) {
       map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (limitPriceStr.present) {
+      map['limit_price_str'] = Variable<String>(limitPriceStr.value);
     }
     if (executedPriceStr.present) {
       map['executed_price_str'] = Variable<String>(executedPriceStr.value);
     }
     if (totalValueStr.present) {
       map['total_value_str'] = Variable<String>(totalValueStr.value);
+    }
+    if (triggerDirection.present) {
+      map['trigger_direction'] = Variable<String>(triggerDirection.value);
     }
     if (timestampMs.present) {
       map['timestamp_ms'] = Variable<int>(timestampMs.value);
@@ -1101,9 +1282,13 @@ class OrdersCompanion extends UpdateCompanion<OrderEntry> {
           ..write('id: $id, ')
           ..write('symbol: $symbol, ')
           ..write('side: $side, ')
+          ..write('orderType: $orderType, ')
+          ..write('status: $status, ')
           ..write('quantity: $quantity, ')
+          ..write('limitPriceStr: $limitPriceStr, ')
           ..write('executedPriceStr: $executedPriceStr, ')
           ..write('totalValueStr: $totalValueStr, ')
+          ..write('triggerDirection: $triggerDirection, ')
           ..write('timestampMs: $timestampMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1649,9 +1834,13 @@ typedef $$OrdersTableCreateCompanionBuilder = OrdersCompanion Function({
   required String id,
   required String symbol,
   required String side,
+  Value<String> orderType,
+  Value<String> status,
   required int quantity,
-  required String executedPriceStr,
+  Value<String?> limitPriceStr,
+  Value<String?> executedPriceStr,
   required String totalValueStr,
+  Value<String?> triggerDirection,
   required int timestampMs,
   Value<int> rowid,
 });
@@ -1659,9 +1848,13 @@ typedef $$OrdersTableUpdateCompanionBuilder = OrdersCompanion Function({
   Value<String> id,
   Value<String> symbol,
   Value<String> side,
+  Value<String> orderType,
+  Value<String> status,
   Value<int> quantity,
-  Value<String> executedPriceStr,
+  Value<String?> limitPriceStr,
+  Value<String?> executedPriceStr,
   Value<String> totalValueStr,
+  Value<String?> triggerDirection,
   Value<int> timestampMs,
   Value<int> rowid,
 });
@@ -1686,9 +1879,13 @@ class $$OrdersTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> symbol = const Value.absent(),
             Value<String> side = const Value.absent(),
+            Value<String> orderType = const Value.absent(),
+            Value<String> status = const Value.absent(),
             Value<int> quantity = const Value.absent(),
-            Value<String> executedPriceStr = const Value.absent(),
+            Value<String?> limitPriceStr = const Value.absent(),
+            Value<String?> executedPriceStr = const Value.absent(),
             Value<String> totalValueStr = const Value.absent(),
+            Value<String?> triggerDirection = const Value.absent(),
             Value<int> timestampMs = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -1696,9 +1893,13 @@ class $$OrdersTableTableManager extends RootTableManager<
             id: id,
             symbol: symbol,
             side: side,
+            orderType: orderType,
+            status: status,
             quantity: quantity,
+            limitPriceStr: limitPriceStr,
             executedPriceStr: executedPriceStr,
             totalValueStr: totalValueStr,
+            triggerDirection: triggerDirection,
             timestampMs: timestampMs,
             rowid: rowid,
           ),
@@ -1706,9 +1907,13 @@ class $$OrdersTableTableManager extends RootTableManager<
             required String id,
             required String symbol,
             required String side,
+            Value<String> orderType = const Value.absent(),
+            Value<String> status = const Value.absent(),
             required int quantity,
-            required String executedPriceStr,
+            Value<String?> limitPriceStr = const Value.absent(),
+            Value<String?> executedPriceStr = const Value.absent(),
             required String totalValueStr,
+            Value<String?> triggerDirection = const Value.absent(),
             required int timestampMs,
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -1716,9 +1921,13 @@ class $$OrdersTableTableManager extends RootTableManager<
             id: id,
             symbol: symbol,
             side: side,
+            orderType: orderType,
+            status: status,
             quantity: quantity,
+            limitPriceStr: limitPriceStr,
             executedPriceStr: executedPriceStr,
             totalValueStr: totalValueStr,
+            triggerDirection: triggerDirection,
             timestampMs: timestampMs,
             rowid: rowid,
           ),
@@ -1743,8 +1952,23 @@ class $$OrdersTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<String> get orderType => $state.composableBuilder(
+      column: $state.table.orderType,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get status => $state.composableBuilder(
+      column: $state.table.status,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ColumnFilters<int> get quantity => $state.composableBuilder(
       column: $state.table.quantity,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get limitPriceStr => $state.composableBuilder(
+      column: $state.table.limitPriceStr,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -1755,6 +1979,11 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<String> get totalValueStr => $state.composableBuilder(
       column: $state.table.totalValueStr,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get triggerDirection => $state.composableBuilder(
+      column: $state.table.triggerDirection,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -1782,8 +2011,23 @@ class $$OrdersTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<String> get orderType => $state.composableBuilder(
+      column: $state.table.orderType,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get status => $state.composableBuilder(
+      column: $state.table.status,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<int> get quantity => $state.composableBuilder(
       column: $state.table.quantity,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get limitPriceStr => $state.composableBuilder(
+      column: $state.table.limitPriceStr,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -1794,6 +2038,11 @@ class $$OrdersTableOrderingComposer
 
   ColumnOrderings<String> get totalValueStr => $state.composableBuilder(
       column: $state.table.totalValueStr,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get triggerDirection => $state.composableBuilder(
+      column: $state.table.triggerDirection,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 

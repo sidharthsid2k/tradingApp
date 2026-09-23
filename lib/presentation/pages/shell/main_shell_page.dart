@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/router/app_router.dart';
+import '../../providers/orders_viewmodel.dart';
 
 /// The root scaffold with a bottom navigation bar. The active tab's content
 /// is rendered via the [child] provided by go_router's [ShellRoute].
@@ -15,6 +17,7 @@ class MainShellPage extends StatelessWidget {
   static final _tabs = [
     AppRoutes.market,
     AppRoutes.watchlists,
+    AppRoutes.orders,
     AppRoutes.holdings,
   ];
 
@@ -42,6 +45,9 @@ class _AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pendingCount =
+        context.select<OrdersViewModel, int>((vm) => vm.pendingCount);
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.bottomNavBg,
@@ -67,11 +73,19 @@ class _AppBottomNav extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
               _NavItem(
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long_rounded,
+                label: AppStrings.navOrders,
+                isActive: currentIndex == 2,
+                badgeCount: pendingCount,
+                onTap: () => onTap(2),
+              ),
+              _NavItem(
                 icon: Icons.account_balance_wallet_outlined,
                 activeIcon: Icons.account_balance_wallet_rounded,
                 label: AppStrings.navHoldings,
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
+                isActive: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),
@@ -88,12 +102,14 @@ class _NavItem extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     this.activeIcon,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final IconData? activeIcon;
   final String label;
   final bool isActive;
+  final int badgeCount;
   final VoidCallback onTap;
 
   @override
@@ -109,14 +125,44 @@ class _NavItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  isActive ? (activeIcon ?? icon) : icon,
-                  key: ValueKey(isActive),
-                  color: color,
-                  size: 24,
-                ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      isActive ? (activeIcon ?? icon) : icon,
+                      key: ValueKey(isActive),
+                      color: color,
+                      size: 24,
+                    ),
+                  ),
+                  if (badgeCount > 0)
+                    Positioned(
+                      top: -3,
+                      right: -8,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF57F17),
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$badgeCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 3),
               Text(

@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/holding.dart';
 import '../../domain/usecases/holdings/get_holdings_usecase.dart';
+import '../../domain/usecases/holdings/delete_holding_usecase.dart';
 import '../../domain/entities/price_tick.dart';
 import '../../core/constants/app_strings.dart';
 
@@ -35,12 +36,16 @@ class HoldingView {
 /// Holdings are loaded from DB; live P&L is computed from the [MarketViewModel]
 /// ticks that are passed in via [refreshWithTicks].
 class HoldingsViewModel extends ChangeNotifier {
-  HoldingsViewModel(GetHoldingsUseCase getHoldings)
-      : _getHoldings = getHoldings {
+  HoldingsViewModel(
+    GetHoldingsUseCase getHoldings, {
+    DeleteHoldingUseCase? deleteHolding,
+  })  : _getHoldings = getHoldings,
+        _deleteHolding = deleteHolding {
     loadAll();
   }
 
   final GetHoldingsUseCase _getHoldings;
+  final DeleteHoldingUseCase? _deleteHolding;
 
   List<Holding> _holdings = [];
   Map<String, PriceTick> _ticks = {};
@@ -123,6 +128,20 @@ class HoldingsViewModel extends ChangeNotifier {
   void refreshWithTicks(Map<String, PriceTick> ticks) {
     _ticks = ticks;
     notifyListeners();
+  }
+
+  Future<void> deleteHolding(String symbol) async {
+    if (_deleteHolding != null) {
+      await _deleteHolding.call(symbol);
+      await loadAll();
+    }
+  }
+
+  Future<void> clearAllHoldings() async {
+    if (_deleteHolding != null) {
+      await _deleteHolding.clearAll();
+      await loadAll();
+    }
   }
 
   void setSortOrder(HoldingsSortOrder order) {

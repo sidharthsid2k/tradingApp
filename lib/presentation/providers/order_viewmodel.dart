@@ -182,18 +182,26 @@ class OrderViewModel extends ChangeNotifier {
       final qty = _parseQty()!;
       final priceToExecute = effectivePrice;
 
+      final domainOrderType = _orderType == OrderTypeUi.limit
+          ? OrderType.limit
+          : OrderType.market;
+
       Order order;
       if (_side == OrderSideUi.buy) {
         order = await _placeBuyOrder(
           symbol: _symbol,
           quantity: qty,
           price: priceToExecute,
+          orderType: domainOrderType,
+          currentLtp: ltp,
         );
       } else {
         order = await _placeSellOrder(
           symbol: _symbol,
           quantity: qty,
           price: priceToExecute,
+          orderType: domainOrderType,
+          currentLtp: ltp,
         );
       }
       _completedOrder = order;

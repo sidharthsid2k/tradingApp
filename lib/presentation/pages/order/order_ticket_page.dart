@@ -15,9 +15,11 @@ import '../../../domain/usecases/order/place_sell_order_usecase.dart';
 import '../../../domain/repositories/i_wallet_repository.dart';
 import '../../../domain/repositories/i_holdings_repository.dart';
 import '../../../domain/repositories/i_order_repository.dart';
+import '../../../domain/repositories/i_transaction_runner.dart';
 import '../../providers/market_viewmodel.dart';
 import '../../providers/order_viewmodel.dart';
 import '../../providers/holdings_viewmodel.dart';
+import '../../providers/orders_viewmodel.dart';
 
 /// Feature 3: Buy/Sell Ticket — full-screen order form with live LTP.
 class OrderTicketPage extends StatelessWidget {
@@ -41,11 +43,13 @@ class OrderTicketPage extends StatelessWidget {
           walletRepo: context.read<IWalletRepository>(),
           holdingsRepo: context.read<IHoldingsRepository>(),
           orderRepo: context.read<IOrderRepository>(),
+          transactionRunner: context.read<ITransactionRunner>(),
         ),
         placeSellOrder: PlaceSellOrderUseCase(
           walletRepo: context.read<IWalletRepository>(),
           holdingsRepo: context.read<IHoldingsRepository>(),
           orderRepo: context.read<IOrderRepository>(),
+          transactionRunner: context.read<ITransactionRunner>(),
         ),
         walletRepo: context.read<IWalletRepository>(),
         holdingsRepo: context.read<IHoldingsRepository>(),
@@ -742,8 +746,9 @@ class _SubmitButton extends StatelessWidget {
     final vm = context.read<OrderViewModel>();
     final order = await vm.submit();
     if (order != null && context.mounted) {
-      // Reload holdings so P&L is fresh
+      // Reload holdings and orders so both are fresh
       context.read<HoldingsViewModel>().loadAll();
+      context.read<OrdersViewModel>().loadOrders();
       context.pushReplacement(AppRoutes.orderConfirmation, extra: order);
     }
   }
